@@ -9,7 +9,7 @@ import {EBookingType} from '../enums/BookingType';
 
 export interface IBooking {
     readonly usage?: string,
-    readonly biller: IUser,
+    biller: IUser,
     readonly forAll?: boolean,
     readonly recipients?: Array<IUser>,
     readonly bill?: IBill,

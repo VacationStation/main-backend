@@ -3,6 +3,7 @@
  */
 
 import {Group, IGroupModel} from '../models/Group';
+import {User, IUserModel} from '../models/User';
 import {Bill, IBillModel} from '../models/Bill';
 import {Booking, IBookingModel} from '../models/Booking';
 import {EBookingType} from "../enums/BookingType";
@@ -14,14 +15,27 @@ shortid.characters('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWX
 export class GroupController {
 
     public static findGroupById(id) : Promise<IGroupModel>  {
+        console.log("findGroupById", id);
         return new Promise<IGroupModel>((resolve, reject) => {
             Group.findById(id)
                 .populate('member')
                 .populate('owner')
+                .populate('bookings', {"path": "biller"})
                 .exec()
                 .then((group: IGroupModel) => {
-                    group.bookings.forEach(function(key, value) {
-                    })
+                    if(group.bookings.length === 0) {
+                        resolve(group);
+                    } else {
+                        for(let i = 0; i < group.bookings.length; i++){
+                            User.findById(group.bookings[i].biller).then(user => {
+                                group.bookings[i].biller = user;
+                                if(i === group.bookings.length-1) {
+                                    resolve(group);
+                                }
+                            }).catch(err => console.log(err));
+
+                        }
+                    }
                 })
                 .catch(err => reject(err));
         });

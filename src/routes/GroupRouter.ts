@@ -21,20 +21,79 @@ export class GroupRouter{
      * @apiName getGroup
      * @apiGroup Group
      * @apiDescription Returns Group data by id
-     * @apiParam {Number} id Groups unique ID
+     * @apiParam {String} id Groups unique ID
      *
-     * @apiSuccess {Number} id Group ID
-     * //TODO add group fields
+     * @apiSuccess {String} id Group ID
+     * @apiSuccess {Date} creationDate
+     * @apiSuccess {String} name
+     * @apiSuccess {String} description
+     * @apiSuccess {String} destination
+     * @apiSuccess {Date} dateFrom
+     * @apiSuccess {dateTo} dateTo
+     * @apiSuccess {Object} owner User who owns the Group
+     * @apiSuccess {String} owner.id
+     * @apiSuccess {String} owner.loginName
+     * @apiSuccess {String} owner.firstName
+     * @apiSuccess {String} owner.lastName
+     * @apiSuccess {String} owner.mail
+     * @apiSuccess {Object[]} bookings
+     * @apiSuccess {String} bookings.usage
+     * @apiSuccess {Object} bookings.biller  User who has paid the bill
+     * @apiSuccess {String} bookings.biller.id
+     * @apiSuccess {String} bookings.biller.loginName
+     * @apiSuccess {String} bookings.biller.firstName
+     * @apiSuccess {String} bookings.biller.lastName
+     * @apiSuccess {String} bookings.biller.mail
+     * @apiSuccess {Boolean} bookings.forAll True as default. If the invoice is adressed to special users, set it to false and list the Users as recipients
+     * @apiSuccess {Object[]} bookings.recipients The List of Users to which the invoice is addressed if forAll is false
+     * @apiSuccess {String} bookings.type Booking Type can either be "BILL" or "DEPOSIT". As default, forAll is true and list of recipients is empty
+     * @apiSuccess {Number} bookings.amount total in EUR Cent
+     * @apiSuccess {Date} bookings.date
+     * @apiSuccess {String[]} invite List of generated invitiation Codes
      * @apiSuccessExample {json} Success-Response:
      *
      *     {
      *      "success": true,
      *      "group": {
      *          "id" : "",
-     *          ...
-     *      }
-     *     }
+     *          "creationDate": "",
+  	 *          "name": "TestGruppe",
+  	 *          "description": "Test Beschreibung",
+  	 *          "destination": "Testgebiet",
+  	 *          "dateFrom": "",
+  	 *          "dateTo": "",
+  	 *          "owner": {
      *
+  	 *           },
+  	 *          "member": [
+  	 *	            { "loginName": "user1",
+  	 *          	  "firstName": "Kai",
+  	 *          	  "lastName": "Ahnung",
+  	 *          	  "mail": "kai@ahnung.de"
+  	 *          	},
+  	 *	            {..}
+     *	        ],
+  	 *          "bookings": [
+  	 *      	    { "usage": "Getraenke",
+  	 *          	  "biller": {
+  	 *     	  	    	"loginName": "user1",
+  	 *      	  		"firstName": "Kai",
+  	 *      	  		"lastName": "Ahnung",
+  	 *      	  		"mail": "kai@ahnung.de"
+  	 *      	  		},
+  	 *          	  "forAll": "true",
+  	 *          	  "recipients": [],
+  	 *          	  "type": "BILL",
+  	 *          	  "amount": "5678",
+  	 *          	  "date": ""
+  	 *         	  },
+  	 *         	{..}
+  	 *          ],
+  	 *          "invite" :[
+	 *          	"AG52I8F",
+	 *          	"59OSM40"
+  	 *          ]
+     *      }
      * @apiError GroupNotFound The id of the Group was not found
      */
     /**
@@ -45,6 +104,7 @@ export class GroupRouter{
      */
     private getGroup(req: Request, res: Response, next: NextFunction){
         let id = req.params.id;
+        console.log("get group", id);
         GroupController.findGroupById(id).then(function(result){
             return res.status(200).json({success: true, data: result});
         }).catch(function(err){
@@ -56,12 +116,14 @@ export class GroupRouter{
      * @apiName addGroup
      * @apiGroup Group
      * @apiDescription Adds a new Group
-     * @apiParam {String} groupName
-     * @apiParam {Text} groupDescription
+     * @apiParam {String} name
+     * @apiParam {String} description
+     * @apiParam {String} destination
+     * @apiParam {Date} dateFrom
+     * @apiParam {dateTo} dateTo
      *
-     * @apiSuccess {Number} id Group ID
-     * @apiSuccess {String} invitationKey The invitation key new users have to provide if they want to join the group
-     * //TODO add group fields
+     * @apiSuccess {String} id Group ID
+     *
      */
     /**
      * create new group
@@ -83,7 +145,7 @@ export class GroupRouter{
      * @apiName getInvotation
      * @apiGroup Group
      * @apiDescription Returns Group invitation link
-     * @apiParam {Number} id Groups unique ID
+     * @apiParam {String} id Groups unique ID
      *
      * @apiSuccess {String} invitationKey
      *
@@ -158,31 +220,26 @@ export class GroupRouter{
         });
     }
     /**
-     * @api {put} /group/:groupId/add/:userId addUser
+     * @api {put} /group/add addUser
      * @apiName addUser
      * @apiGroup Group
      * @apiDescription Add User to Group if provided initation key is valid
-     * @apiParam {Number} groupId Groups unique ID
-     * @apiParam {Number} userId Users unique ID
-     *
-     * @apiParam {String} key The invitation key a Group member has provided.
+     * @apiParam {String} key Invitation key
      * @apiParamExample {json} Request-Example:
      *        {
      * 			"key": "InviteMe"
      * 		 }
-     * @apiError GroupNotFound The id of the Group was not found
      * @apiError UserNotFound The id of the User was not found
      * @apiError (Error Invalid) InvalidKey The invitationKey is invalid
      *
      */
     /**
-     * add User to group:id if provided invitation code is valid
+     * add User to group
      * @param req
      * @param res
      * @param next
      */
     private addUser(req: Request, res: Response, next: NextFunction){
-        //TODO call method? GET/PUT?
         let user = req.body.user;
         let key = req.body.key;
         console.log("GroupRouter", req.body);
@@ -198,13 +255,9 @@ export class GroupRouter{
      * @apiName removeUser
      * @apiGroup Group
      * @apiDescription Remove User from Group
-     * @apiParam {Number} groupId Groups unique ID
-     * @apiParam {Number} userId Users unique ID
+     * @apiParam {String} groupId Groups unique ID
+     * @apiParam {String} userId Users unique ID
      * @apiParam {String} ownerId The id of the User who wants to remove an User. Only the Group owner is allowed to remove User from Group.
-     * @apiParamExample {json} Request-Example:
-     *        {
-     * 			"id": "1"
-     * 		 }
      * @apiError GroupNotFound The id of the Group was not found
      * @apiError UserNotFound The id of the User was not found
      *
@@ -232,7 +285,7 @@ export class GroupRouter{
      * @apiName getGroupsByUser
      * @apiGroup Group
      * @apiDescription Get all Groups the given User is member of
-     * @apiParam {Number} id Users unique ID
+     * @apiParam {String} id Users unique ID
      *
      * @apiError UserNotFound The id of the User was not found
      *
@@ -252,7 +305,14 @@ export class GroupRouter{
         });
     };
 
-    //TODO: add api doc
+    /**
+     * @api {get} /group/user getOwnGroups
+     * @apiName getOwnGroups
+     * @apiGroup Group
+     * @apiDescription Get all Groups the logged in User belongs to
+     *
+     *
+     */
     private getOwnGroups(req: Request, res: Response, next: NextFunction) {
         console.log("getOwnGroups", req.body.user);
         GroupController.findGroupsWithUserId(req.body.user._id).then(function(result){
@@ -266,7 +326,7 @@ export class GroupRouter{
      * @api {post} /group/:id/makeDeposit makeDeposit
      * @apiName makeDeposit
      * @apiGroup Group
-     * @apiParam {Number} id Groups unique ID
+     * @apiParam {String} id Groups unique ID
      * @apiParam {String} userID The Users ID
      * @apiParam {Number} amount Amount in EUR Cent
      * @apiParam {String} [usage] Optional Note
